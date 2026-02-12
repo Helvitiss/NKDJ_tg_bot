@@ -91,20 +91,19 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
             f"{score.message}"
         )
 
-        await message.bot.send_message(
-            chat_id=survey_service.admin_id,
-            text=(
-                "Новый завершенный daily survey\n"
-                f"username: @{full.user.username if full.user and full.user.username else '-'}\n"
-                f"user_id: {full.user.user_id if full.user else '-'}\n"
-                f"date: {full.date.isoformat()}\n"
-                f"raw: mood={full.answer.mood}, campaigns={full.answer.campaigns_count}, "
-                f"geo={full.answer.geo_count}, creatives={full.answer.creatives_count}, "
-                f"accounts={full.answer.accounts_count}\n"
-                f"colors: mood={score.mood_color}, campaigns={score.campaigns_color}, geo={score.geo_color}, "
-                f"creatives={score.creatives_color}, accounts={score.accounts_color}\n"
-                f"total: {score.final_color} ({score.average:.2f}) {score.message}"
-            ),
+        report_text = (
+            "Новый завершенный daily survey\n"
+            f"username: @{full.user.username if full.user and full.user.username else '-'}\n"
+            f"user_id: {full.user.user_id if full.user else '-'}\n"
+            f"date: {full.date.isoformat()}\n"
+            f"raw: mood={full.answer.mood}, campaigns={full.answer.campaigns_count}, "
+            f"geo={full.answer.geo_count}, creatives={full.answer.creatives_count}, "
+            f"accounts={full.answer.accounts_count}\n"
+            f"colors: mood={score.mood_color}, campaigns={score.campaigns_color}, geo={score.geo_color}, "
+            f"creatives={score.creatives_color}, accounts={score.accounts_color}\n"
+            f"total: {score.final_color} ({score.average:.2f}) {score.message}"
         )
+        for target in survey_service.report_targets:
+            await message.bot.send_message(chat_id=target, text=report_text)
 
     dp.include_router(router)

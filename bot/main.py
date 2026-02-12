@@ -47,14 +47,19 @@ async def main() -> None:
     dp = Dispatcher(storage=MemoryStorage())
 
     user_service = UserService(session_factory=session_factory)
-    survey_service = SurveyService(session_factory=session_factory, admin_id=settings.admin_id)
+    survey_service = SurveyService(
+        session_factory=session_factory,
+        admin_id=settings.admin_id,
+        report_chat_id=settings.report_chat_id,
+    )
     scheduler_service = SchedulerService(
         bot=bot,
         session_factory=session_factory,
         admin_id=settings.admin_id,
+        report_chat_id=settings.report_chat_id,
     )
 
-    common.register(dp, user_service)
+    common.register(dp, user_service, survey_service)
     survey.register(dp, survey_service)
 
     dp.startup.register(partial(on_startup, scheduler_service))

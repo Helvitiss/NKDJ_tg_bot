@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     bot_token: str = Field(alias="BOT_TOKEN")
     admin_id: int = Field(alias="ADMIN_ID")
+    report_chat_id: int | None = Field(default=None, alias="REPORT_CHAT_ID")
     database_url: str = Field(
         default="postgresql+asyncpg://postgres:postgres@postgres:5432/postgres",
         alias="DATABASE_URL",

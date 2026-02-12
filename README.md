@@ -20,6 +20,7 @@ Production-ready Telegram bot for daily team surveys with automatic scoring and 
 3. Fill required variables:
    - `BOT_TOKEN`
    - `ADMIN_ID`
+   - `REPORT_CHAT_ID` (optional; group/channel/chat where reports are duplicated)
    - `DATABASE_URL` (optional; default Compose DB is provided)
 4. Run:
    ```bash
@@ -57,3 +58,7 @@ User sets timezone by command:
 /timezone Europe/Moscow
 ```
 Default timezone is `UTC`.
+
+### Useful commands
+- `/result` — start today's survey immediately (without waiting for 20:00).
+- `/test` — test command that confirms bot availability and launches today's survey in test mode.
