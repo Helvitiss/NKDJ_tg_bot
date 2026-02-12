@@ -3,29 +3,35 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import and_, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from bot.db.models import Answer, Survey, SurveyStatus, User
+from bot.db.models import Answer, Survey, SurveyStatus
 
 
 class SurveyRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create_daily_if_absent(self, user: User, survey_date: date) -> tuple[Survey, bool]:
-        survey = Survey(user_id=user.id, date=survey_date)
-        self.session.add(survey)
-        try:
-            await self.session.flush()
-            return survey, True
-        except IntegrityError:
-            await self.session.rollback()
-            existing = await self.get_by_user_and_date(user.id, survey_date)
-            if existing is None:
-                raise
-            return existing, False
+    async def create_daily_if_absent(self, user_db_id: int, survey_date: date) -> tuple[Survey, bool]:
+        stmt = (
+            insert(Survey)
+            .values(user_id=user_db_id, date=survey_date)
+            .on_conflict_do_nothing(index_elements=[Survey.user_id, Survey.date])
+            .returning(Survey.id)
+        )
+        inserted_id = await self.session.scalar(stmt)
+        if inserted_id is not None:
+            created = await self.session.get(Survey, inserted_id)
+            if created is None:
+                raise RuntimeError("Inserted survey was not found")
+            return created, True
+
+        existing = await self.get_by_user_and_date(user_db_id, survey_date)
+        if existing is None:
+            raise RuntimeError("Survey conflict detected but existing row was not found")
+        return existing, False
 
     async def get_by_user_and_date(self, user_db_id: int, survey_date: date) -> Survey | None:
         result = await self.session.execute(

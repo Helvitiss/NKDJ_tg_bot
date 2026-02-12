@@ -52,7 +52,7 @@ class SchedulerService:
                     continue
 
                 async with session.begin():
-                    survey, created = await survey_repo.create_daily_if_absent(user=user, survey_date=local_now.date())
+                    survey, created = await survey_repo.create_daily_if_absent(user_db_id=user.id, survey_date=local_now.date())
                     if not created:
                         continue
 

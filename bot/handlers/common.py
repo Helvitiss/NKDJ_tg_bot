@@ -9,7 +9,7 @@ from bot.services.survey_service import SurveyService
 from bot.services.user_service import UserService
 
 
-def register(dp: Dispatcher, user_service: UserService, survey_service: SurveyService) -> None:
+def register(dp: Dispatcher, user_service: UserService, survey_service: SurveyService, admin_id: int) -> None:
     router = Router()
 
     @router.message(Command("start"))
@@ -67,5 +67,25 @@ def register(dp: Dispatcher, user_service: UserService, survey_service: SurveySe
 
         await message.answer("Тест: запускаю опрос прямо сейчас.")
         await message.answer("1) Настроение", reply_markup=mood_keyboard(survey_id))
+
+    @router.message(Command("remove_user"))
+    async def remove_user_handler(message: Message, command: CommandObject) -> None:
+        if message.from_user is None:
+            return
+        if message.from_user.id != admin_id:
+            await message.answer("Команда доступна только администратору.")
+            return
+
+        user_id_raw = (command.args or "").strip()
+        if not user_id_raw.isdigit():
+            await message.answer("Использование: /remove_user <telegram_user_id>")
+            return
+
+        removed = await user_service.remove_user(int(user_id_raw))
+        if not removed:
+            await message.answer("Пользователь не найден в базе.")
+            return
+
+        await message.answer(f"Пользователь {user_id_raw} удален. Бот больше не будет ему писать.")
 
     dp.include_router(router)

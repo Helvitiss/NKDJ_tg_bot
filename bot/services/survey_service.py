@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
-from zoneinfo import ZoneInfo
 
 from bot.db.models import Survey
 from bot.domain.scoring import ScoringEngine, ScoreResult
@@ -73,7 +73,7 @@ class SurveyService:
                     return None
 
                 local_now = datetime.utcnow().replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo(user.timezone))
-                survey, _ = await survey_repo.create_daily_if_absent(user=user, survey_date=local_now.date())
+                survey, _ = await survey_repo.create_daily_if_absent(user_db_id=user.id, survey_date=local_now.date())
                 if survey.status.value != "pending":
                     return None
 

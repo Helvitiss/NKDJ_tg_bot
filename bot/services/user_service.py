@@ -28,3 +28,9 @@ class UserService:
             async with session.begin():
                 await repo.set_timezone(telegram_user_id, timezone)
         return True
+
+    async def remove_user(self, telegram_user_id: int) -> bool:
+        async with self.session_factory() as session:
+            repo = UserRepository(session)
+            async with session.begin():
+                return await repo.delete_by_telegram_id(telegram_user_id)

@@ -59,7 +59,7 @@ async def main() -> None:
         report_chat_id=settings.report_chat_id,
     )
 
-    common.register(dp, user_service, survey_service)
+    common.register(dp, user_service, survey_service, settings.admin_id)
     survey.register(dp, survey_service)
 
     dp.startup.register(partial(on_startup, scheduler_service))

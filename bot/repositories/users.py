@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.db.models import User
@@ -33,3 +33,8 @@ class UserRepository:
     async def list_all(self) -> list[User]:
         result = await self.session.execute(select(User))
         return list(result.scalars().all())
+
+    async def delete_by_telegram_id(self, telegram_user_id: int) -> bool:
+        result = await self.session.execute(delete(User).where(User.user_id == telegram_user_id))
+        await self.session.flush()
+        return bool(result.rowcount)
