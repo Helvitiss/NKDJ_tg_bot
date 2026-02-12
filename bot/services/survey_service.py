@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
+from zoneinfo import ZoneInfo
 
 from bot.db.models import Survey
 from bot.domain.scoring import ScoringEngine, ScoreResult
