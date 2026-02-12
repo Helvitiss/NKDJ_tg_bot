@@ -5,8 +5,21 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 
 from bot.keyboards.survey import mood_keyboard
-from bot.services.survey_service import SurveyService
+from bot.services.survey_service import StatsEntry, SurveyService
 from bot.services.user_service import UserService
+
+
+def _format_stats_entry(entry: StatsEntry) -> str:
+    return (
+        f"👤 <b>@{entry.username}</b> (<code>{entry.user_id}</code>)\n"
+        f"• Анкет: <b>{entry.surveys_count}</b>\n"
+        f"• Настроение (avg): <b>{entry.mood_avg:.2f}</b>\n"
+        f"• Компании (avg): <b>{entry.campaigns_avg:.2f}</b>\n"
+        f"• Гео (avg): <b>{entry.geo_avg:.2f}</b>\n"
+        f"• Крео (avg): <b>{entry.creatives_avg:.2f}</b>\n"
+        f"• Кабинеты (avg): <b>{entry.accounts_avg:.2f}</b>\n"
+        f"• Эффективность (avg): <b>{entry.score_avg:.2f}</b>"
+    )
 
 
 def register(dp: Dispatcher, user_service: UserService, survey_service: SurveyService, admin_id: int) -> None:
@@ -20,7 +33,7 @@ def register(dp: Dispatcher, user_service: UserService, survey_service: SurveySe
         await message.answer(
             "Привет! Я бот ежедневного опроса.\n"
             "Каждый день в 20:00 по вашему часовому поясу я пришлю опрос.\n"
-            "Установить таймзону: /timezone Europe/Moscow\n"
+            "Установить таймзону: /timezone Europe/Moscow или /timezone +3\n"
             "Запустить опрос сейчас: /result\n"
             "Проверка бота: /test"
         )
@@ -31,13 +44,21 @@ def register(dp: Dispatcher, user_service: UserService, survey_service: SurveySe
             return
         timezone = (command.args or "").strip()
         if not timezone:
-            await message.answer("Укажите таймзону, например: /timezone Europe/Moscow")
+            await message.answer(
+                "Укажите таймзону. Примеры:\n"
+                "• /timezone Europe/Moscow\n"
+                "• /timezone +3\n"
+                "• /timezone -2"
+            )
             return
-        ok = await user_service.set_timezone(message.from_user.id, timezone)
-        if not ok:
-            await message.answer("Некорректная таймзона. Используйте IANA формат, например Europe/Moscow")
+        normalized_timezone = await user_service.set_timezone(message.from_user.id, timezone)
+        if normalized_timezone is None:
+            await message.answer(
+                "Некорректная таймзона. Используйте IANA (Europe/Moscow) "
+                "или смещение UTC в формате +3 / -2"
+            )
             return
-        await message.answer(f"Таймзона обновлена: {timezone}")
+        await message.answer(f"Таймзона обновлена: <b>{normalized_timezone}</b>")
 
     @router.message(Command("result"))
     async def result_handler(message: Message) -> None:
@@ -62,6 +83,49 @@ def register(dp: Dispatcher, user_service: UserService, survey_service: SurveySe
         await message.answer("Тестовая команда выполнена ✅")
         await message.answer("Тест: запускаю отдельный тестовый опрос (не влияет на /result).")
         await message.answer("1) Настроение", reply_markup=mood_keyboard("test"))
+
+    @router.message(Command("stats"))
+    async def stats_handler(message: Message, command: CommandObject) -> None:
+        if message.from_user is None:
+            return
+        if message.from_user.id != admin_id:
+            await message.answer("Команда /stats доступна только администратору.")
+            return
+
+        period = (command.args or "day").strip().lower()
+        if period not in {"day", "week", "month"}:
+            await message.answer("Использование: /stats [day|week|month]")
+            return
+
+        report = await survey_service.collect_stats(period)
+        if not report.per_user:
+            await message.answer(
+                f"📈 Статистика за <b>{period}</b> ({report.date_from} — {report.date_to})\n\n"
+                "Нет завершенных анкет за выбранный период."
+            )
+            return
+
+        blocks = [
+            f"📈 <b>Статистика за {period}</b>\n"
+            f"Период: <b>{report.date_from}</b> — <b>{report.date_to}</b>\n"
+        ]
+        for entry in report.per_user:
+            blocks.append(_format_stats_entry(entry))
+
+        if report.overall is not None:
+            overall = report.overall
+            blocks.append(
+                "🌐 <b>Общая статистика</b>\n"
+                f"• Анкет: <b>{overall.surveys_count}</b>\n"
+                f"• Настроение (avg): <b>{overall.mood_avg:.2f}</b>\n"
+                f"• Компании (avg): <b>{overall.campaigns_avg:.2f}</b>\n"
+                f"• Гео (avg): <b>{overall.geo_avg:.2f}</b>\n"
+                f"• Крео (avg): <b>{overall.creatives_avg:.2f}</b>\n"
+                f"• Кабинеты (avg): <b>{overall.accounts_avg:.2f}</b>\n"
+                f"• Эффективность (avg): <b>{overall.score_avg:.2f}</b>"
+            )
+
+        await message.answer("\n\n".join(blocks))
 
     @router.message(Command("remove_user"))
     async def remove_user_handler(message: Message, command: CommandObject) -> None:

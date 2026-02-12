@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -11,6 +10,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from bot.repositories.surveys import SurveyRepository
 from bot.repositories.users import UserRepository
 from bot.keyboards.survey import mood_keyboard
+from bot.utils.timezone import local_now_from_timezone
 
 
 logger = logging.getLogger(__name__)
@@ -40,14 +40,13 @@ class SchedulerService:
             self.scheduler.shutdown(wait=False)
 
     async def dispatch_daily_surveys(self) -> None:
-        now_utc = datetime.utcnow()
         async with self.session_factory() as session:
             user_repo = UserRepository(session)
             survey_repo = SurveyRepository(session)
             users = await user_repo.list_all()
 
             for user in users:
-                local_now = now_utc.replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo(user.timezone))
+                local_now = local_now_from_timezone(user.timezone)
                 if local_now.hour != 20 or local_now.minute != 0:
                     continue
 

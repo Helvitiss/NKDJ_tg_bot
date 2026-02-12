@@ -22,3 +22,14 @@ def confirm_keyboard() -> InlineKeyboardMarkup:
             ]
         ]
     )
+
+
+def mode_keyboard(survey_id: int | str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Масштабирование", callback_data=f"mode:{survey_id}:Масштабирование"),
+                InlineKeyboardButton(text="Тест", callback_data=f"mode:{survey_id}:Тест"),
+            ]
+        ]
+    )

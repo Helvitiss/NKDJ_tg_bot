@@ -4,7 +4,7 @@ from aiogram import Dispatcher, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from bot.keyboards.survey import confirm_keyboard
+from bot.keyboards.survey import confirm_keyboard, mode_keyboard
 from bot.services.survey_service import SurveyService
 from bot.utils.states import SurveyState
 
@@ -13,10 +13,11 @@ def _draft_text(data: dict[str, object]) -> str:
     return (
         "<b>Проверьте анкету перед отправкой</b>\n\n"
         f"1) Настроение: <b>{data['mood']}</b>\n"
-        f"2) Компаний: <b>{int(data['campaigns'])}</b>\n"
-        f"3) Гео: <b>{int(data['geo'])}</b>\n"
-        f"4) Подходов по крео: <b>{int(data['creatives'])}</b>\n"
-        f"5) Кабинетов: <b>{int(data['accounts'])}</b>\n\n"
+        f"2) Режим: <b>{data['mode']}</b>\n"
+        f"3) Компаний: <b>{int(data['campaigns'])}</b>\n"
+        f"4) Гео: <b>{int(data['geo'])}</b>\n"
+        f"5) Подходов по крео: <b>{int(data['creatives'])}</b>\n"
+        f"6) Кабинетов: <b>{int(data['accounts'])}</b>\n\n"
         "Если все верно — подтвердите отправку."
     )
 
@@ -35,8 +36,18 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
             await state.update_data(is_test=True, mood=mood)
         else:
             await state.update_data(survey_id=int(survey_id_raw), is_test=False, mood=mood)
+        await state.set_state(SurveyState.mode)
+        await callback.message.answer("2) Твой режим, масштабирование или тест ?", reply_markup=mode_keyboard(survey_id_raw))
+        await callback.answer()
+
+    @router.callback_query(F.data.startswith("mode:"), SurveyState.mode)
+    async def mode_selected(callback: CallbackQuery, state: FSMContext) -> None:
+        if callback.data is None or callback.message is None:
+            return
+        _, _, mode = callback.data.split(":", maxsplit=2)
+        await state.update_data(mode=mode)
         await state.set_state(SurveyState.campaigns)
-        await callback.message.answer("2) Сколько компаний запустил?")
+        await callback.message.answer("3) Сколько компаний запустил?")
         await callback.answer()
 
     @router.message(SurveyState.campaigns)
@@ -46,7 +57,7 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
             return
         await state.update_data(campaigns=int(message.text))
         await state.set_state(SurveyState.geo)
-        await message.answer("3) Сколько гео запустил?")
+        await message.answer("4) Сколько гео запустил?")
 
     @router.message(SurveyState.geo)
     async def geo_handler(message: Message, state: FSMContext) -> None:
@@ -55,7 +66,7 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
             return
         await state.update_data(geo=int(message.text))
         await state.set_state(SurveyState.creatives)
-        await message.answer("4) Подходы по крео?")
+        await message.answer("5) Подходы по крео?")
 
     @router.message(SurveyState.creatives)
     async def creatives_handler(message: Message, state: FSMContext) -> None:
@@ -64,7 +75,7 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
             return
         await state.update_data(creatives=int(message.text))
         await state.set_state(SurveyState.accounts)
-        await message.answer("5) Сколько кабинетов?")
+        await message.answer("6) Сколько кабинетов?")
 
     @router.message(SurveyState.accounts)
     async def accounts_handler(message: Message, state: FSMContext) -> None:
@@ -99,12 +110,12 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
 
         is_test = survey_id == "test"
         if is_test:
-            await state.update_data(is_test=True, mood=mood)
+            await state.update_data(is_test=True, mood=mood, mode=data.get("mode", "Тест"))
         else:
-            await state.update_data(survey_id=int(survey_id), is_test=False, mood=mood)
+            await state.update_data(survey_id=int(survey_id), is_test=False, mood=mood, mode=data.get("mode", "Масштабирование"))
 
         await state.set_state(SurveyState.campaigns)
-        await callback.message.answer("Заполняем анкету заново.\n2) Сколько компаний запустил?")
+        await callback.message.answer("Заполняем анкету заново.\n3) Сколько компаний запустил?")
         await callback.answer("Ок, начинаем заново")
 
     @router.callback_query(F.data == "survey_confirm:submit", SurveyState.confirm)
@@ -134,6 +145,7 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
             await callback.message.answer(
                 "<b>Тестовый опрос завершен</b> ✅\n\n"
                 f"Настроение: <b>{data['mood']}</b>\n"
+                f"Режим: <b>{data['mode']}</b>\n"
                 f"Компании: <b>{int(data['campaigns'])}</b>\n"
                 f"Гео: <b>{int(data['geo'])}</b>\n"
                 f"Крео: <b>{int(data['creatives'])}</b>\n"
@@ -169,6 +181,7 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
         await callback.message.answer(
             "<b>Опрос завершен!</b>\n\n"
             f"Настроение: <b>{full.answer.mood}</b>\n"
+            f"Режим: <b>{data['mode']}</b>\n"
             f"Компании: <b>{full.answer.campaigns_count}</b>\n"
             f"Гео: <b>{full.answer.geo_count}</b>\n"
             f"Крео: <b>{full.answer.creatives_count}</b>\n"
@@ -184,6 +197,7 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
             f"🆔 user_id: <code>{full.user.user_id if full.user else '-'}</code>\n\n"
             "<b>Ответы</b>\n"
             f"• Настроение: {full.answer.mood}\n"
+            f"• Режим: {data['mode']}\n"
             f"• Компании: {full.answer.campaigns_count} → {score.campaigns_color}\n"
             f"• Гео: {full.answer.geo_count} → {score.geo_color}\n"
             f"• Крео: {full.answer.creatives_count} → {score.creatives_color}\n"

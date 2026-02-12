@@ -86,3 +86,17 @@ class SurveyRepository:
     async def mark_admin_notified(self, survey: Survey) -> None:
         survey.admin_notified_at = datetime.utcnow()
         await self.session.flush()
+
+    async def list_answered_in_range(self, date_from: date, date_to: date) -> list[Survey]:
+        result = await self.session.execute(
+            select(Survey)
+            .options(selectinload(Survey.user), selectinload(Survey.answer))
+            .where(
+                and_(
+                    Survey.status == SurveyStatus.answered,
+                    Survey.date >= date_from,
+                    Survey.date <= date_to,
+                )
+            )
+        )
+        return list(result.scalars().all())
