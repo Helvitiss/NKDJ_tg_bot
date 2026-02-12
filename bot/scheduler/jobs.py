@@ -66,10 +66,10 @@ class SchedulerService:
                 surveys = await repo.pending_overdue_without_admin_notification()
                 for survey in surveys:
                     overdue_text = (
-                        "Пользователь не ответил в течение 12 часов\n"
-                        f"username: @{survey.user.username if survey.user and survey.user.username else '-'}\n"
-                        f"user_id: {survey.user.user_id if survey.user else '-'}\n"
-                        f"date: {survey.date.isoformat()}"
+                        "<b>⏰ Нет ответа на daily survey более 12 часов</b>\n"
+                        f"🗓 Дата: <b>{survey.date.isoformat()}</b>\n"
+                        f"👤 Пользователь: <b>@{survey.user.username if survey.user and survey.user.username else '-'}</b>\n"
+                        f"🆔 user_id: <code>{survey.user.user_id if survey.user else '-'}</code>"
                     )
                     for target in self.report_targets:
                         await self.bot.send_message(chat_id=target, text=overdue_text)

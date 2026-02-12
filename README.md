@@ -45,6 +45,7 @@ Daily at 20:00 in each user's stored timezone:
 3. GEO count
 4. Creatives approaches count
 5. Accounts count
+6. Confirmation step before submit (confirm or fill again)
 
 After completion:
 - User gets own results and final status.

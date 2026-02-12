@@ -11,3 +11,14 @@ def mood_keyboard(survey_id: int | str) -> InlineKeyboardMarkup:
             ]
         ]
     )
+
+
+def confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Подтвердить", callback_data="survey_confirm:submit"),
+                InlineKeyboardButton(text="✏️ Заполнить заново", callback_data="survey_confirm:restart"),
+            ]
+        ]
+    )

@@ -7,3 +7,4 @@ class SurveyState(StatesGroup):
     geo = State()
     creatives = State()
     accounts = State()
+    confirm = State()
