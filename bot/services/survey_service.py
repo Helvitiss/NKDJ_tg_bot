@@ -33,6 +33,16 @@ class SurveyService:
             return [self.admin_id]
         return [self.admin_id, self.report_chat_id]
 
+    def calculate_score(
+        self,
+        mood: str,
+        campaigns: int,
+        geo: int,
+        creatives: int,
+        accounts: int,
+    ) -> ScoreResult:
+        return self.scoring_engine.score(mood, campaigns, geo, creatives, accounts)
+
     async def complete_survey(
         self,
         survey_id: int,

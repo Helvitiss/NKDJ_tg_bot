@@ -59,14 +59,9 @@ def register(dp: Dispatcher, user_service: UserService, survey_service: SurveySe
             return
 
         await user_service.register(message.from_user.id, message.from_user.username)
-        survey_id = await survey_service.get_or_create_today_survey_for_user(message.from_user.id)
         await message.answer("Тестовая команда выполнена ✅")
-        if survey_id is None:
-            await message.answer("Тест: опрос за сегодня уже завершен, новый не создан.")
-            return
-
-        await message.answer("Тест: запускаю опрос прямо сейчас.")
-        await message.answer("1) Настроение", reply_markup=mood_keyboard(survey_id))
+        await message.answer("Тест: запускаю отдельный тестовый опрос (не влияет на /result).")
+        await message.answer("1) Настроение", reply_markup=mood_keyboard("test"))
 
     @router.message(Command("remove_user"))
     async def remove_user_handler(message: Message, command: CommandObject) -> None:

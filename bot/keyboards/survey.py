@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def mood_keyboard(survey_id: int) -> InlineKeyboardMarkup:
+def mood_keyboard(survey_id: int | str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [

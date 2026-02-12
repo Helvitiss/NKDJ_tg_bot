@@ -16,8 +16,12 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
         if callback.data is None or callback.message is None:
             return
         _, survey_id_raw, mood = callback.data.split(":", maxsplit=2)
+        is_test = survey_id_raw == "test"
         await state.clear()
-        await state.update_data(survey_id=int(survey_id_raw), mood=mood)
+        if is_test:
+            await state.update_data(is_test=True, mood=mood)
+        else:
+            await state.update_data(survey_id=int(survey_id_raw), is_test=False, mood=mood)
         await state.set_state(SurveyState.campaigns)
         await callback.message.answer("2) Сколько компаний запустил?")
         await callback.answer()
@@ -55,10 +59,33 @@ def register(dp: Dispatcher, survey_service: SurveyService) -> None:
             await message.answer("Введите целое число")
             return
         data = await state.get_data()
+        is_test = bool(data.get("is_test"))
         survey_id = data.get("survey_id")
-        if survey_id is None:
+        if not is_test and survey_id is None:
             await state.clear()
             await message.answer("Не удалось завершить опрос. Попробуйте позже.")
+            return
+
+        if is_test:
+            score = survey_service.calculate_score(
+                mood=str(data["mood"]),
+                campaigns=int(data["campaigns"]),
+                geo=int(data["geo"]),
+                creatives=int(data["creatives"]),
+                accounts=int(message.text),
+            )
+            await state.clear()
+            await message.answer(
+                "Тестовый опрос завершен ✅\n"
+                f"Настроение: {data['mood']}\n"
+                f"Компании: {int(data['campaigns'])}\n"
+                f"Гео: {int(data['geo'])}\n"
+                f"Крео: {int(data['creatives'])}\n"
+                f"Кабинеты: {int(message.text)}\n\n"
+                f"Итог: {score.final_color} ({score.average:.2f})\n"
+                f"{score.message}\n\n"
+                "Это тестовый результат — он не сохранен в БД и не влияет на /result."
+            )
             return
 
         result = await survey_service.complete_survey(

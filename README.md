@@ -61,5 +61,5 @@ Default timezone is `UTC`.
 
 ### Useful commands
 - `/result` — start today's survey immediately (without waiting for 20:00).
-- `/test` — test command that confirms bot availability and launches today's survey in test mode.
+- `/test` — test command that always runs an isolated test survey (unlimited runs, does not affect `/result`).
 - `/remove_user <telegram_user_id>` — admin-only command to remove user from DB, so bot stops sending surveys to this user.
