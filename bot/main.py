@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from functools import partial
+
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -17,7 +19,7 @@ from bot.services.survey_service import SurveyService
 from bot.services.user_service import UserService
 
 
-async def on_startup(dispatcher: Dispatcher, scheduler_service: SchedulerService) -> None:
+async def on_startup(scheduler_service: SchedulerService) -> None:
     logging.info("Starting up bot...")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -26,7 +28,7 @@ async def on_startup(dispatcher: Dispatcher, scheduler_service: SchedulerService
     logging.info("Scheduler started")
 
 
-async def on_shutdown(dispatcher: Dispatcher, scheduler_service: SchedulerService) -> None:
+async def on_shutdown(scheduler_service: SchedulerService) -> None:
     logging.info("Shutting down bot...")
     scheduler_service.shutdown()
     await engine.dispose()
@@ -55,8 +57,8 @@ async def main() -> None:
     common.register(dp, user_service)
     survey.register(dp, survey_service)
 
-    dp.startup.register(lambda d: on_startup(d, scheduler_service))
-    dp.shutdown.register(lambda d: on_shutdown(d, scheduler_service))
+    dp.startup.register(partial(on_startup, scheduler_service))
+    dp.shutdown.register(partial(on_shutdown, scheduler_service))
 
     await dp.start_polling(bot)
 
