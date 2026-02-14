@@ -24,8 +24,9 @@ class ScoringEngine:
         creatives_color = "🟢" if creatives >= 3 else "🟡" if creatives >= 1 else "🔴"
         accounts_color = "🟢" if accounts >= 4 else "🟡" if accounts >= 2 else "🔴"
 
-        colors = [mood, campaigns_color, geo_color, creatives_color, accounts_color]
-        average = sum(self.WEIGHTS[color] for color in colors) / len(colors)
+        # Настроение считается отдельной метрикой и не влияет на итоговую эффективность.
+        performance_colors = [campaigns_color, geo_color, creatives_color, accounts_color]
+        average = sum(self.WEIGHTS[color] for color in performance_colors) / len(performance_colors)
 
         if average >= 1.5:
             final_color = "🟢"

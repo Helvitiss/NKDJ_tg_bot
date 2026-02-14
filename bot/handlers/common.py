@@ -33,7 +33,7 @@ def register(dp: Dispatcher, user_service: UserService, survey_service: SurveySe
         await message.answer(
             "Привет! Я бот ежедневного опроса.\n"
             "Каждый день в 20:00 по вашему часовому поясу я пришлю опрос.\n"
-            "Установить таймзону: /timezone Europe/Moscow или /timezone +3\n"
+            "Установить таймзону: /timezone Europe/Warsaw или /timezone +1\n"
             "Запустить опрос сейчас: /result\n"
             "Проверка бота: /test"
         )
@@ -46,16 +46,16 @@ def register(dp: Dispatcher, user_service: UserService, survey_service: SurveySe
         if not timezone:
             await message.answer(
                 "Укажите таймзону. Примеры:\n"
-                "• /timezone Europe/Moscow\n"
-                "• /timezone +3\n"
+                "• /timezone Europe/Warsaw\n"
+                "• /timezone +1\n"
                 "• /timezone -2"
             )
             return
         normalized_timezone = await user_service.set_timezone(message.from_user.id, timezone)
         if normalized_timezone is None:
             await message.answer(
-                "Некорректная таймзона. Используйте IANA (Europe/Moscow) "
-                "или смещение UTC в формате +3 / -2"
+                "Некорректная таймзона. Используйте IANA (Europe/Warsaw) "
+                "или смещение UTC в формате +1 / -2"
             )
             return
         await message.answer(f"Таймзона обновлена: <b>{normalized_timezone}</b>")
