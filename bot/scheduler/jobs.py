@@ -49,8 +49,27 @@ class SchedulerService:
         for user in users:
             target_local_date, run_at_utc = self._next_run_for_user(user.timezone, now_utc)
             job_id = self._job_id(user.user_id, target_local_date)
-            if self.scheduler.get_job(job_id) is not None:
-                continue
+
+            # Удаляем устаревшие отложенные job для пользователя (например, после смены таймзоны).
+            prefix = self._user_job_prefix(user.user_id)
+            for existing_job in self.scheduler.get_jobs():
+                if existing_job.id.startswith(prefix) and existing_job.id != job_id:
+                    self.scheduler.remove_job(existing_job.id)
+                    logger.info("Removed stale deferred survey job_id=%s user_id=%s", existing_job.id, user.user_id)
+
+            existing = self.scheduler.get_job(job_id)
+            if existing is not None and existing.next_run_time is not None:
+                delta = abs((existing.next_run_time - run_at_utc).total_seconds())
+                if delta <= 60:
+                    continue
+                self.scheduler.remove_job(job_id)
+                logger.info(
+                    "Rescheduling deferred job_id=%s user_id=%s old=%s new=%s",
+                    job_id,
+                    user.user_id,
+                    existing.next_run_time.isoformat(),
+                    run_at_utc.isoformat(),
+                )
 
             self.scheduler.add_job(
                 self.send_daily_survey_job,
@@ -103,6 +122,10 @@ class SchedulerService:
     @staticmethod
     def _job_id(telegram_user_id: int, survey_date: date) -> str:
         return f"deferred_survey:{telegram_user_id}:{survey_date.isoformat()}"
+
+    @staticmethod
+    def _user_job_prefix(telegram_user_id: int) -> str:
+        return f"deferred_survey:{telegram_user_id}:"
 
     @staticmethod
     def _next_run_for_user(user_timezone: str, now_utc: datetime) -> tuple[date, datetime]:
